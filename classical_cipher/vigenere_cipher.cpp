@@ -3,6 +3,29 @@
 #include <vector>
 #include <map>
 using namespace std;
+// 使用重合检测法验证这个m是否正确
+
+double all_fqc[26] = {0.082,0.015,0.028,0.043,0.127,0.022,0.020,0.061,0.070,0.002,0.008,0.040,0.024,0.067,0.075,0.019,0.001,0.060,0.063,0.091,0.028,0.010,0.023,0.001,0.020,0.001};
+bool check_m(){
+    return true;
+}
+
+int find_m(){
+
+}
+int get_key(string en,int m,int no){
+	int g = 0;
+	int g_pro = 0;
+	double fqc[26] = {0};
+	for(int i = no;i<en.length();i+=26){
+		fqc[en[i]-'a'] += 1;
+	}
+	for(int i=0;i<26;i++){
+	    fqc[i]/(en.length/m);
+	}
+
+}
+
 int main(){
     string en = "KCCPKBGUFDPHQTYAVINRRTMVGRKDNBVFDETDGILTXRGUDDKOTFMBPVGEGLTGCKQRACQCWDNAWCRXIZAKFTLEWRPTYCQKYVXCHKFTPONCQQRHJVAJUWETMCMSPKQDYHJVDAHCTRLSVSKCGCZQQDZXGSFRLSWCWSJTBHAFSIASPRJAHKJRJUMVGKMITZHFPDISPZLVLGWTFPLKKEBDPGCEBSHCTJRWXBAFSPEZQNRWXCVYCGAONWDDKACKAWBBIKFTIOVKCGGHJVLNHIFFSQESVYCLACNVRWBBIREPBBVFEXOSCDYGZWPFDTKFQIYCWHJVLNHIQIBTKHJVNPIST";
 	for(int i = 0;i<en.length();i++){
@@ -16,4 +39,5 @@ int main(){
 		    c_en[t] = '-';
 	    }
 	}
+	
 }
