@@ -115,29 +115,29 @@ int main(){
     double m_loss = 1;
     int b_m = -1;
     for(int j = 3;j<4;j++)
-    for(int i = 0;i<en.length()-j+1;i++){
-        string k_str = en.substr(i,j);
-        if(has.count(k_str)) continue;
-        has[k_str] = 1;
-        m = find_m(en,k_str);
-        if(m!=-1&&m_loss > check_m(en,m)){
-            m_loss = check_m(en,m);
-            b_m = m;
+        for(int i = 0;i<en.length()-j+1;i++){
+            string k_str = en.substr(i,j);
+            if(has.count(k_str)) continue;
+            has[k_str] = 1;
+            m = find_m(en,k_str);
+            if(m!=-1&&m_loss > check_m(en,m)){
+                m_loss = check_m(en,m);
+                b_m = m;
+            }
+            // 找一个最接近0.065 的
         }
-        // 找一个最接近0.065 的
-	}
     cout << b_m << endl;
-	// 获得m后，计算密钥
-	vector <int> key = get_key(en,b_m);
-	for(int i = 0;i<key.size();i++){
+    // 获得m后，计算密钥
+    vector <int> key = get_key(en,b_m);
+    for(int i = 0;i<key.size();i++){
 //	    cout << key[i]<<endl;
-	    cout << char(key[i]+'A');
-	}
-	cout <<endl;
-	// 解密
+        cout << char(key[i]+'A');
+    }
+    cout <<endl;
+    // 解密
     string plaintext = "";
-	for(int i = 0;i<en.length();i++){
-	    plaintext += char((en[i]-'A'+26-key[i%b_m])%26+'A');
-	}
-	cout <<plaintext<<endl;
+    for(int i = 0;i<en.length();i++){
+        plaintext += char((en[i]-'A'+26-key[i%b_m])%26+'A');
+    }
+    cout <<plaintext<<endl;
 }
