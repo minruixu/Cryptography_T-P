@@ -259,7 +259,7 @@ public:
             }
             //将本行的所有列除对角线上的值，将牵绊部分化成单位矩阵
             xishu = multiInv(e[i][i]);
-            cout << i<<"row"<<xishu<<endl;
+//            cout << i<<"row"<<xishu<<endl;
             for(int j = i;j<2*n;j++){
                 e[i][j] = (e[i][j]*xishu)%26;
             }
@@ -286,7 +286,6 @@ public:
         }
         if(plaintext.length()<2*(_m*_m)||ciphertext.length()<2*(_m*_m)) return false;
         //将字符串转发成数字装入数组中
-        cout <<"+"<<endl;
         for(int i = 0;i<_m;i++){
             for(int j = 0;j<_m;j++){
                 x1[i][j] = plaintext[i*_m+j]-'a';
@@ -295,7 +294,18 @@ public:
                 y2[i][j] = ciphertext[(_m*_m)+i*_m+j]-'A';
             }
         }
-        cout <<"+"<<endl;
+//        for(int i = 0;i<_m;i++){
+//            for(int j = 0;j<_m;j++){
+//                cout << x2[i][j]<<" ";
+//            }
+//            cout << endl;
+//        }
+//        for(int i = 0;i<_m;i++){
+//            for(int j = 0;j<_m;j++){
+//                cout << y2[i][j]<<" ";
+//            }
+//            cout << endl;
+//        }
         for(int i = 0;i<_m;i++){
             for(int j = 0;j<_m;j++){
                 x1[i][j] = (x1[i][j] + addInv(x2[i][j]))%26;
@@ -315,10 +325,16 @@ public:
         }
         //用x2,y2得到b
         x1 = getInvLinear(x1,_m);
+//        for(int i = 0;i<_m;i++){
+//            for(int j = 0;j<_m;j++){
+//                cout << x1[i][j]<<" ";
+//            }
+//            cout << endl;
+//        }
         for(int i = 0;i<_m;i++){
             int t = 0;
             for(int j = 0;j<_m;j++){
-                t += x2[0][i] * _Lmatrix[i][j];
+                t += x2[0][j] * _Lmatrix[j][i];
             }
             _b[i] = (y2[0][i] + addInv(t%26))%26;
         }
