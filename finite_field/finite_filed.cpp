@@ -85,7 +85,7 @@ public:
         vector <int> result;
         int a_high = find_high(a);
         int b_high = find_high(b);
-        for(int i = a_high;i>=b_high;i--){
+        for(int i = a_high;i>b_high;i--){
             if(a[i]==0) continue;
             vector <int> ve = myshift(b,i-b_high);
             for(int j = 0;j<=i;j++){
@@ -100,6 +100,21 @@ public:
 //            }
 //            cout << endl;
         }
+        for(int i = b_high;i>=0;i--){
+            if(a[i]>b[i]){
+                for(int j = 0;j<=b_high;j++){
+                    a[j] = myxor(a[j],b[j]);
+                }
+                break;
+            }
+            else if(a[i]<b[i]){
+                break;
+            }
+        }
+        for(int i = 0;i<_m;i++){
+            cout << a[i]<<' ';
+        }
+        cout << endl;
         result.assign(a.begin(),a.begin()+_m);
         return result;
     }
@@ -124,6 +139,16 @@ public:
         vector <int> result(_m,0);
         int a_high = find_high(a);
         int b_high = find_high(b);
+        cout <<"____________________"<<endl;
+        for(int i = 0;i<_m;i++){
+            cout << a[i]<<' ';
+        }
+        cout << endl;
+        for(int i = 0;i<_m;i++){
+            cout << b[i]<<' ';
+        }
+        cout << endl;
+        cout <<"____________________"<<endl;
         for(int i = a_high;i>b_high;i--){
             if(a[i]==0) continue;
             vector <int> ve = myshift(b,i-b_high);
@@ -141,17 +166,31 @@ public:
                 break;
             }
         }
+        for(int i = 0;i<_m;i++){
+            cout << result[i]<<' ';
+        }
+        cout << endl;
         return result;
     }
     vector <int> inverse(vector <int> r1,vector <int> r2,vector <int> v1=_v1,vector <int> v2=_v0,vector <int> w1=_v0,vector <int> w2=_v1){
         //使用欧几里得算法求逆
-        if(decode(r1)==0 || decode(r2) == 1) return w2;
+        if(decode(r2)==0 || decode(r2) == 1) return w2;
         vector <int> q3 = divide_mod(r1,r2);
+        cout << "++";
         vector <int> r3 = mod(r1,r2);
         // 计算v3
         vector <int> v3 = add(v1,multiply(q3,v2));
         // 计算w3
         vector <int> w3 = add(w1,multiply(q3,w2));
+        cout << "-";
+        for(int i = 0;i<_m;i++){
+            cout << q3[i]<<' ';
+        }
+        cout << "+";
+        for(int i = 0;i<_m;i++){
+            cout << w3[i]<<' ';
+        }
+        cout << endl;
         return inverse(r2,r3,v2,v3,w2,w3);
     }
     vector <int> finite_pow(vector <int> a,int p){
@@ -176,7 +215,7 @@ int main(){
     finiteFiled f = finiteFiled(m,irr_poly);
     vector <int> a(m,0);
 //    vector<int> b(m,0);
-    a[0]=1;a[1] =0;a[2]=0;
+    a[0]=0;a[1] =1;a[2]=0;
 //    b[0]=0;b[1] =1;b[2]=1;
 //    vector <int> re = f.multiply(a,b);
     vector <int> div_re = f.inverse(irr_poly,a);
