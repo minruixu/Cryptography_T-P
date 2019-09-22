@@ -34,6 +34,8 @@ https://blog.csdn.net/CHANG12358/article/details/82319822
 
 https://blog.csdn.net/luotuo44/article/details/41645597
 
+https://blog.csdn.net/weixin_40156933/article/details/83866348
+
 finnally，学号^20190911
 
 ### 实验及算法原理
@@ -54,6 +56,22 @@ finnally，学号^20190911
 
 对于有限域上多项式的乘法逆元，我们使用扩展欧几里得算法求解。
 
+使用扩展欧几里得算法对一个多项式求逆。
+
+在有限域中，我们定义
+$$
+b(x)b^{-1}(x) \equiv 1 mod a(x)
+$$
+等价于
+$$
+a(x)v(x) + b(x)w(x) = 1,
+$$
+其中这里的
+$$
+w(x) = b^{-1}(x).
+$$
+
+
 ### 程序清单
 
 ### 运行截图
@@ -61,4 +79,3 @@ finnally，学号^20190911
 ### 结果分析
 
 ### 总结
-
