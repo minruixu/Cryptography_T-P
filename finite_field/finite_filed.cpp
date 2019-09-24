@@ -50,12 +50,13 @@ public:
         }
         return result;
     }
-    int decode(vector <int> a){
-        int result = 0;
+    vector <char> decode(vector <int> a){
+        vector <char> result(_m/4);
+        vector <char> c = {'0','1','2','3','4','5','6','7','8','9','0','A','B','C','D','E','F'};
         for(int i = 0;i<_m/4;i++){
             vector <int> t;
             t.assign(a.begin()+(4*i),a.begin()+(4*i)+4);
-            result += pow(10,i)*decode_int(t);
+            result[i] = c[decode_int(t)];
         }
         return result;
     }
@@ -100,17 +101,18 @@ public:
 //            }
 //            cout << endl;
         }
-        for(int i = b_high;i>=0;i--){
-            if(a[i]>b[i]){
-                for(int j = 0;j<=b_high;j++){
-                    a[j] = myxor(a[j],b[j]);
+        if(a_high>=b_high)
+            for(int i = b_high;i>=0;i--){
+                if(a[i]>b[i]){
+                    for(int j = 0;j<=b_high;j++){
+                        a[j] = myxor(a[j],b[j]);
+                    }
+                    break;
                 }
-                break;
+                else if(a[i]<b[i]){
+                    break;
+                }
             }
-            else if(a[i]<b[i]){
-                break;
-            }
-        }
         for(int i = 0;i<_m;i++){
             cout << a[i]<<' ';
         }
@@ -121,15 +123,18 @@ public:
     vector <int> multiply(vector <int> a,vector <int> b){
         vector <int> result(2*_m,0);
         for(int i = 0;i<_m;i++){
-            for(int j = 0;j<_m;j++){
-                int t = a[i]*b[j];
-                result[i+j] = myxor(result[i+j],t);
+            if(a[i]==1) {
+                vector<int> bt = myshift(b, i);
+                for (int j = 0; j < bt.size(); j++) {
+                    result[j] = myxor(result[j], bt[j]);
+                }
             }
-//            for(int i = 0;i<2*_m;i++){
-//                cout << result[i]<<' ';
-//            }
-//            cout << endl;
         }
+        cout <<"乘法运算的结果为:";
+        for(int i = 0;i<2*_m;i++){
+            cout << result[i];
+        }
+        cout << endl;
         //取mod
         result = mod(result,_irr_poly);
         return result;
@@ -174,7 +179,7 @@ public:
     }
     vector <int> inverse(vector <int> r1,vector <int> r2,vector <int> v1=_v1,vector <int> v2=_v0,vector <int> w1=_v0,vector <int> w2=_v1){
         //使用欧几里得算法求逆
-        if(decode(r2)==0 || decode(r2) == 1) return w2;
+        if(decode(r2)[0]==0 || decode(r2)[0] == 1) return w2;
         vector <int> q3 = divide_mod(r1,r2);
         cout << "++";
         vector <int> r3 = mod(r1,r2);
@@ -194,9 +199,11 @@ public:
         return inverse(r2,r3,v2,v3,w2,w3);
     }
     vector <int> finite_pow(vector <int> a,int p){
-        vector <int> result = a;
-        for(int i = 0;i<p-1;i++){
-            result = multiply(result,a);
+        vector <int> result = _v1;
+        while (p>0){
+            if(p%2==1) result = multiply(result,a);
+            a = multiply(a,a);
+            p = p >> 1;
         }
         return result;
     }
@@ -208,19 +215,31 @@ vector<int> finiteFiled::_v1(vec1,vec1+128);
 int main(){
 //    vector <int> irr_poly(128,0);
 //    irr_poly[0] = 1;irr_poly[1] = 1;irr_poly[127] = 1;
-    int m = 4;
+    int m = 128;
 //    cin >> m;
     vector <int> irr_poly(m,0);
-    irr_poly[0]=1;irr_poly[1] = 1;irr_poly[3] = 1;
+    irr_poly[0]=1;irr_poly[1] = 1;irr_poly[127] = 1;
     finiteFiled f = finiteFiled(m,irr_poly);
     vector <int> a(m,0);
+    a = f.encode(17340023);
+    cout << f.find_high(a)<<endl;
 //    vector<int> b(m,0);
-    a[0]=0;a[1] =1;a[2]=0;
+//    a[0]=1;a[1] =1;a[127]=0;
 //    b[0]=0;b[1] =1;b[2]=1;
-//    vector <int> re = f.multiply(a,b);
-    vector <int> div_re = f.inverse(irr_poly,a);
+    vector <int> re = f.finite_pow(a,20190911);
+//    vector <int> div_re = f.inverse(irr_poly,a);
+
     for(int i = 0;i<m;i++){
-        cout << div_re[i]<<' ';
+        cout << re[m-i-1];
+    }
+    cout << endl;
+    for(int i = 0;i<a.size();i++){
+        cout << a[a.size()-i-1];
+    }
+    cout << endl;
+    vector <char> num = f.decode(re);
+    for(int i = 0;i<num.size();i++){
+        cout << num[num.size()-i-1];
     }
     cout << endl;
 //    vector<int> t = f.encode(17340023);
