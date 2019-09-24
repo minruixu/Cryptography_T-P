@@ -70,9 +70,13 @@ public:
         return a;
     }
     vector <int> add(vector <int> a,vector <int> b){
-        vector <int> result(_m,0);
-        for(int i = 0;i<_m;i++){
-            result[i] = myxor(a[i],b[i]);
+        int mt = max(a.size(),b.size());
+        vector <int> result(mt,0);
+        for(int i = 0;i<a.size();i++){
+            result[i] = myxor(a[i],result[i]);
+        }
+        for(int i = 0;i<b.size();i++){
+            result[i] = myxor(b[i],result[i]);
         }
         return result;
     }
@@ -80,6 +84,26 @@ public:
         int t = 0;
         for(int i = 0;i<a.size();i++) if(a[i] == 1) t=i;
         return t;
+    }
+    vector <int> new_mod(vector <int> a,vector <int> b){
+        //计算 a mod b
+        vector <int> result;
+        int a_high = find_high(a);
+        int b_high = find_high(b);
+        b[b_high] = 0;
+        while(a_high>=b_high){
+            vector <int> bt = myshift(b,a_high-b_high);
+            a[a_high]=0;
+            a = add(a,bt);
+            a_high=find_high(a);
+        }
+//        cout << "+";
+//        for(int i = 0;i<_m;i++){
+//            cout << a[i];
+//        }
+//        cout << endl;
+        result.assign(a.begin(),a.begin()+_m);
+        return result;
     }
     vector <int> mod(vector <int> a,vector <int> b){
         //计算 a mod b
@@ -113,10 +137,10 @@ public:
                     break;
                 }
             }
-        for(int i = 0;i<_m;i++){
-            cout << a[i]<<' ';
-        }
-        cout << endl;
+//        for(int i = 0;i<_m;i++){
+//            cout << a[i];
+//        }
+//        cout << endl;
         result.assign(a.begin(),a.begin()+_m);
         return result;
     }
@@ -130,13 +154,8 @@ public:
                 }
             }
         }
-        cout <<"乘法运算的结果为:";
-        for(int i = 0;i<2*_m;i++){
-            cout << result[i];
-        }
-        cout << endl;
         //取mod
-        result = mod(result,_irr_poly);
+        result = new_mod(result,_irr_poly);
         return result;
     }
     vector <int> divide_mod(vector <int> a,vector <int> b){
@@ -144,16 +163,16 @@ public:
         vector <int> result(_m,0);
         int a_high = find_high(a);
         int b_high = find_high(b);
-        cout <<"____________________"<<endl;
-        for(int i = 0;i<_m;i++){
-            cout << a[i]<<' ';
-        }
-        cout << endl;
-        for(int i = 0;i<_m;i++){
-            cout << b[i]<<' ';
-        }
-        cout << endl;
-        cout <<"____________________"<<endl;
+//        cout <<"____________________"<<endl;
+//        for(int i = 0;i<_m;i++){
+//            cout << a[i]<<' ';
+//        }
+//        cout << endl;
+//        for(int i = 0;i<_m;i++){
+//            cout << b[i]<<' ';
+//        }
+//        cout << endl;
+//        cout <<"____________________"<<endl;
         for(int i = a_high;i>b_high;i--){
             if(a[i]==0) continue;
             vector <int> ve = myshift(b,i-b_high);
@@ -162,6 +181,7 @@ public:
             }
             result[i-b_high] = 1;
         }
+        if(a_high>=b_high)
         for(int i = b_high;i>=0;i--){
             if(a[i]>b[i]){
                 result[0] = 1;
@@ -171,31 +191,32 @@ public:
                 break;
             }
         }
-        for(int i = 0;i<_m;i++){
-            cout << result[i]<<' ';
-        }
-        cout << endl;
+//        for(int i = 0;i<_m;i++){
+//            cout << result[i]<<' ';
+//        }
+//        cout << endl;
         return result;
     }
     vector <int> inverse(vector <int> r1,vector <int> r2,vector <int> v1=_v1,vector <int> v2=_v0,vector <int> w1=_v0,vector <int> w2=_v1){
         //使用欧几里得算法求逆
-        if(decode(r2)[0]==0 || decode(r2)[0] == 1) return w2;
+        vector<char> rr2 = decode(r2);
+        for(int i = rr2.size()-1;i>=0;i--){
+            if(i!=0&&rr2[i]!='0') break;
+            if(i==0)
+                if(rr2[0]=='0' || rr2[0] == '1') return w2;
+        }
         vector <int> q3 = divide_mod(r1,r2);
-        cout << "++";
+//        cout << "++";
         vector <int> r3 = mod(r1,r2);
         // 计算v3
         vector <int> v3 = add(v1,multiply(q3,v2));
         // 计算w3
         vector <int> w3 = add(w1,multiply(q3,w2));
-        cout << "-";
-        for(int i = 0;i<_m;i++){
-            cout << q3[i]<<' ';
-        }
-        cout << "+";
-        for(int i = 0;i<_m;i++){
-            cout << w3[i]<<' ';
-        }
-        cout << endl;
+//        cout << "+";
+//        for(int i = 0;i<_m;i++){
+//            cout << r3[i];
+//        }
+//        cout << endl;
         return inverse(r2,r3,v2,v3,w2,w3);
     }
     vector <int> finite_pow(vector <int> a,int p){
@@ -213,36 +234,129 @@ vector<int> finiteFiled::_v0(vec,vec+128);
 int vec1[128] = {1};
 vector<int> finiteFiled::_v1(vec1,vec1+128);
 int main(){
-//    vector <int> irr_poly(128,0);
-//    irr_poly[0] = 1;irr_poly[1] = 1;irr_poly[127] = 1;
     int m = 128;
-//    cin >> m;
     vector <int> irr_poly(m,0);
     irr_poly[0]=1;irr_poly[1] = 1;irr_poly[127] = 1;
     finiteFiled f = finiteFiled(m,irr_poly);
     vector <int> a(m,0);
-    a = f.encode(17340023);
-    cout << f.find_high(a)<<endl;
-//    vector<int> b(m,0);
-//    a[0]=1;a[1] =1;a[127]=0;
-//    b[0]=0;b[1] =1;b[2]=1;
-    vector <int> re = f.finite_pow(a,20190911);
-//    vector <int> div_re = f.inverse(irr_poly,a);
-
+    vector <int> b(m,0);
+    vector <int> re(m,0);
+    vector <char> num(m,0);
+    cout << "欢迎来到有限域的运算:"<<endl;
+    cout << "本有限域的次数为127次，不可约多项式为:x^127+x+1"<<endl;
+    cout << "验证加法(3+17340023):"<<endl;
+    a = f.encode(3);
+    b = f.encode(17340023);
+    re = f.add(a,b);
+    cout << "二进制的结果为："<<endl;
     for(int i = 0;i<m;i++){
         cout << re[m-i-1];
     }
     cout << endl;
-    for(int i = 0;i<a.size();i++){
-        cout << a[a.size()-i-1];
-    }
-    cout << endl;
-    vector <char> num = f.decode(re);
+    cout << "十六进制的结果为："<<endl;
+    num = f.decode(re);
     for(int i = 0;i<num.size();i++){
         cout << num[num.size()-i-1];
     }
     cout << endl;
-//    vector<int> t = f.encode(17340023);
-//    cout << f.decode(t) << endl;
-    //f.pow(17340023,20190911);
+    cout << "验证乘法(3*17340023):"<<endl;
+    a = f.encode(3);
+    b = f.encode(17340023);
+    re = f.multiply(a,b);
+    cout << "二进制的结果为："<<endl;
+    for(int i = 0;i<m;i++){
+        cout << re[m-i-1];
+    }
+    cout << endl;
+    cout << "十六进制的结果为："<<endl;
+    num = f.decode(re);
+    for(int i = 0;i<num.size();i++){
+        cout << num[num.size()-i-1];
+    }
+    cout << endl;
+    cout << "求逆(17340023):"<<endl;
+    a = f.encode(17340023);
+    re = f.inverse(irr_poly,a);
+    cout << "二进制的结果为："<<endl;
+    for(int i = 0;i<m;i++){
+        cout << re[m-i-1];
+    }
+    cout << endl;
+    cout << "十六进制的结果为："<<endl;
+    num = f.decode(re);
+    for(int i = 0;i<num.size();i++){
+        cout << num[num.size()-i-1];
+    }
+    cout << endl;
+    cout <<"验证求逆！"<<endl;
+    cout << "二进制的结果为："<<endl;
+    re = f.multiply(a,re);
+    for(int i = 0;i<m;i++){
+        cout << re[m-i-1];
+    }
+    cout << endl;
+    cout << "十六进制的结果为："<<endl;
+    num = f.decode(re);
+    for(int i = 0;i<num.size();i++){
+        cout << num[num.size()-i-1];
+    }
+    cout << endl;
+    cout << "验证次方(17340023^20190911):"<<endl;
+    a = f.encode(17340023);
+    re = f.finite_pow(a,20190911);
+    cout << "二进制的结果为："<<endl;
+    for(int i = 0;i<m;i++){
+        cout << re[m-i-1];
+    }
+    cout << endl;
+    cout << "十六进制的结果为："<<endl;
+    num = f.decode(re);
+    for(int i = 0;i<num.size();i++){
+        cout << num[num.size()-i-1];
+    }
+    cout << endl;
+    cout << "自由检测时间,请输入一个int以内的数字(-_-*),-1退出:"<<endl;
+    int test = 1;
+    cin >> test;
+    while(test!=-1){
+        cout << "验证求逆(test):"<<endl;
+        a = f.encode(test);
+        re = f.inverse(irr_poly,a);
+        cout << "二进制的结果为："<<endl;
+        for(int i = 0;i<m;i++){
+            cout << re[m-i-1];
+        }
+        cout << endl;
+        cout << "十六进制的结果为："<<endl;
+        num = f.decode(re);
+        re = f.multiply(a,re);
+        cout <<"验证求逆！"<<endl;
+        cout << "二进制的结果为："<<endl;
+        for(int i = 0;i<m;i++){
+            cout << re[m-i-1];
+        }
+        cout << endl;
+        cout << "十六进制的结果为："<<endl;
+        num = f.decode(re);
+        for(int i = 0;i<num.size();i++){
+            cout << num[num.size()-i-1];
+        }
+        cout << endl;
+        cout << "验证次方(test^20190911):"<<endl;
+        a = f.encode(test);
+        re = f.finite_pow(a,20190911);
+        cout << "二进制的结果为："<<endl;
+        for(int i = 0;i<m;i++){
+            cout << re[m-i-1];
+        }
+        cout << endl;
+        cout << "十六进制的结果为："<<endl;
+        num = f.decode(re);
+        for(int i = 0;i<num.size();i++){
+            cout << num[num.size()-i-1];
+        }
+        cout << endl;
+        cin >> test;
+    }
+
 }
