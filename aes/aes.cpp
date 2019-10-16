@@ -50,6 +50,18 @@ byte Inv_S_Box[16][16] = {
 };
 word Rcon[10] = {0x01000000, 0x02000000, 0x04000000, 0x08000000, 0x10000000,
                  0x20000000, 0x40000000, 0x80000000, 0x1b000000, 0x36000000};
+string byte2string(byte a){
+    string re;
+    byte a1 = a>>4;
+    byte a2 = (a << 4)>>4;
+    int i1 = a1.to_ulong();
+    int i2 = a2.to_ulong();
+    if(i1<10) re = re + char('0'+i1);
+    else re = re + char('a'+i1-10);
+    if(i2<10) re = re + char('0'+i2);
+    else re = re + char('a'+i2-10);
+    return re;
+}
 class AES{
 private:
     string _key;
@@ -99,20 +111,23 @@ public:
     }
     void KeyExpansion(string skey)
     {
-        byte key[8];
-        for(int i = 0;i<8;i++){
-            int ikey = skey[i] - 'a';
-            key[i] = ikey;
-        }
+        byte key[16];
         // 输入一个string 的key，生成轮密钥
+        for(int i = 0;i<16;i++){
+//            if(i<skey.length()){
+//                int ikey = skey[i] - 'a';
+//                key[i] = ikey;
+//            }
+//            else key[i] = 0x00;
+              key[i] = 'a';
+        }
         word temp;
         int i = 0;
         // w[]的前4个就是输入的key
         for(i =0;i<4;i++){
             _w[i] = Word(key[4*i], key[4*i+1], key[4*i+2], key[4*i+3]);
         }
-        for(i;i<44;i++)
-        {
+        for(i;i<44;i++){
             temp = _w[i-1]; // 记录前一个word
             if(i % 4 == 0)
                 _w[i] = _w[i-4] ^ SubWord(RotWord(temp)) ^ Rcon[i/4-1];
@@ -120,24 +135,26 @@ public:
                 _w[i] = _w[i-4] ^ temp;
         }
     }
-    void SubBytes(byte mtx[4*4]){
-        for(int i=0; i<16; ++i)
-        {
+    vector<byte> SubBytes(vector <byte> mtx){
+        /*
+         * input: 长度为16byte 的vector
+         * 进行字节替换，输出长度为16byte的vector
+         */
+        for(int i=0; i<16; ++i){
             int row = mtx[i][7]*8 + mtx[i][6]*4 + mtx[i][5]*2 + mtx[i][4];
             int col = mtx[i][3]*8 + mtx[i][2]*4 + mtx[i][1]*2 + mtx[i][0];
             mtx[i] = S_Box[row][col];
         }
+        return mtx;
     }
-    void ShiftRows(byte mtx[4*4])
-    {
+    vector <byte> ShiftRows(vector <byte> mtx){
         // 第二行循环左移一位
         byte temp = mtx[4];
         for(int i=0; i<3; ++i)
             mtx[i+4] = mtx[i+5];
         mtx[7] = temp;
         // 第三行循环左移两位
-        for(int i=0; i<2; ++i)
-        {
+        for(int i=0; i<2; ++i){
             temp = mtx[i+8];
             mtx[i+8] = mtx[i+10];
             mtx[i+10] = temp;
@@ -147,6 +164,7 @@ public:
         for(int i=3; i>0; --i)
             mtx[i+12] = mtx[i+11];
         mtx[12] = temp;
+        return mtx;
     }
     byte GFMul(byte a, byte b) {
         byte p = 0;
@@ -164,23 +182,20 @@ public:
         }
         return p;
     }
-    void MixColumns(byte mtx[4*4])
-    {
+    vector <byte> MixColumns(vector <byte> mtx){
         byte arr[4];
-        for(int i=0; i<4; i++)
-        {
+        for(int i=0; i<4; i++){ // 对第i列进行混合
             for(int j=0; j<4; ++j)
                 arr[j] = mtx[i+j*4];
-
             mtx[i] = GFMul(0x02, arr[0]) ^ GFMul(0x03, arr[1]) ^ arr[2] ^ arr[3];
             mtx[i+4] = arr[0] ^ GFMul(0x02, arr[1]) ^ GFMul(0x03, arr[2]) ^ arr[3];
             mtx[i+8] = arr[0] ^ arr[1] ^ GFMul(0x02, arr[2]) ^ GFMul(0x03, arr[3]);
             mtx[i+12] = GFMul(0x03, arr[0]) ^ arr[1] ^ arr[2] ^ GFMul(0x02, arr[3]);
         }
+        return mtx;
     }
     vector<byte> AddRoundKey(vector <byte> mtx, vector <word> k){
-        for(int i=0; i<4; ++i)
-        {
+        for(int i=0; i<4; ++i){
             word k1 = k[i] >> 24;
             word k2 = (k[i] << 8) >> 24;
             word k3 = (k[i] << 16) >> 24;
@@ -196,18 +211,30 @@ public:
     string encryption(string message){
         //128位 每次加密16个字符
         string result;
-        int N = (128-message.length()%128)%128;
+        int N = (16-message.length()%16)%16;
         vector <byte> msg;
         // 将string 的msg转变为a的
         for(int i = 0;i<message.length();i++){
-            byte tmp = message[i] - 'a';
+            byte tmp = message[i];
             msg.push_back(tmp);
         }
         for(int i = 0;i<N;i++){
             byte tmp = N;
             msg.push_back(N);
         }
-        encry(vector <byte> (msg.begin(),msg.begin()+16));
+        // 对msg进行加密
+        int m = msg.size()/16;
+        vector <byte> byte_result;
+        for(int i = 0;i<m;i++){
+            vector <byte> tmp = encry(vector <byte> (msg.begin()+16*i,msg.begin()+16+16*i));
+            byte_result.insert(byte_result.end(),tmp.begin(),tmp.end());
+        }
+        cout << byte_result.size()<<endl;
+        for(int i = 0;i<byte_result.size();i++){
+            cout << byte2string(byte_result[i]);
+        }
+        cout << endl;
+        //将用byte表示的密文转化为十六进制和字符串。
         return result;
     }
     vector <byte> encry(vector <byte> x){
@@ -218,17 +245,18 @@ public:
             x = SubBytes(x);
             x = ShiftRows(x);
             x = MixColumns(x);
-            AddRoundKey(x,vector <word> (_w.begin()+4*i,_w.begin()+4+4*i))
+            x = AddRoundKey(x,vector <word> (_w.begin()+4*i,_w.begin()+4+4*i));
         }
         x = SubBytes(x);
         x = ShiftRows(x);
-        AddRoundKey(x,vector <word> (_w.begin()+4*i,_w.begin()+4+4*i))
+        x = AddRoundKey(x,vector <word> (_w.end()-4,_w.end()));
         return x;
     }
 };
 
 int main(){
-    string message = "ilearnedhowtocalculatetheamountofpaperneededforaroomwheniwasatschoolyoumultiplythesquarefootageofthewallsbythecubiccontentsofthefloorandceilingcombinedanddoubleityouthenallowhalfthetotalforopeningssuchaswindowsanddoorsthenyouallowtheotherhalfformatchingthepatternthenyoudoublethewholethingagaintogiveamarginoferrorandthenyouorderthepaper";
+//    string message = "ilearnedhowtocalculatetheamountofpaperneededforaroomwheniwasatschoolyoumultiplythesquarefootageofthewallsbythecubiccontentsofthefloorandceilingcombinedanddoubleityouthenallowhalfthetotalforopeningssuchaswindowsanddoorsthenyouallowtheotherhalfformatchingthepatternthenyoudoublethewholethingagaintogiveamarginoferrorandthenyouorderthepaper";
+    string message = "0";
     string key = "xuminrui";
     byte shift_byte = 123; //  CBC 模式下的初始向量
     AES a = AES(key,shift_byte);
