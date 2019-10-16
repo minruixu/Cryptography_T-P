@@ -53,28 +53,30 @@ word Rcon[10] = {0x01000000, 0x02000000, 0x04000000, 0x08000000, 0x10000000,
 class AES{
 private:
     string _key;
-    word _w[44];
+    vector <word> _w;
     byte _shift;
+    byte IV;
 public:
     AES(string key,byte shift){
         _key = key;
         _shift = shift;
+        _w.resize(44);
         KeyExpansion(_key);
     }
-    word Word(byte& k1, byte& k2, byte& k3, byte& k4)
-    {
+    word Word(byte& k1, byte& k2, byte& k3, byte& k4){
+        //将四个字节合并为一个word
         word result(0x00000000);
         word temp;
-        temp = k1.to_ulong();  // K1
+        temp = k1.to_ulong();
         temp <<= 24;
         result |= temp;
-        temp = k2.to_ulong();  // K2
+        temp = k2.to_ulong();
         temp <<= 16;
         result |= temp;
-        temp = k3.to_ulong();  // K3
+        temp = k3.to_ulong();
         temp <<= 8;
         result |= temp;
-        temp = k4.to_ulong();  // K4
+        temp = k4.to_ulong();
         result |= temp;
         return result;
     }
@@ -83,8 +85,7 @@ public:
         word low = rw >> 24;
         return high | low;
     }
-    word SubWord(word sw)
-    {
+    word SubWord(word sw){
         word temp;
         for(int i=0; i<32; i+=8)
         {
@@ -177,8 +178,7 @@ public:
             mtx[i+12] = GFMul(0x03, arr[0]) ^ arr[1] ^ arr[2] ^ GFMul(0x02, arr[3]);
         }
     }
-    void AddRoundKey(byte mtx[4*4], word k[4])
-    {
+    vector<byte> AddRoundKey(vector <byte> mtx, vector <word> k){
         for(int i=0; i<4; ++i)
         {
             word k1 = k[i] >> 24;
@@ -191,15 +191,39 @@ public:
             mtx[i+8] = mtx[i+8] ^ byte(k3.to_ulong());
             mtx[i+12] = mtx[i+12] ^ byte(k4.to_ulong());
         }
-    }
-    void Round(int r){
-        // 进行一轮的加密，对state
-        SubBytes();
-        ShiftRows();
-        AddRoundKey;
+        return mtx;
     }
     string encryption(string message){
+        //128位 每次加密16个字符
         string result;
+        int N = (128-message.length()%128)%128;
+        vector <byte> msg;
+        // 将string 的msg转变为a的
+        for(int i = 0;i<message.length();i++){
+            byte tmp = message[i] - 'a';
+            msg.push_back(tmp);
+        }
+        for(int i = 0;i<N;i++){
+            byte tmp = N;
+            msg.push_back(N);
+        }
+        encry(vector <byte> (msg.begin(),msg.begin()+16));
+        return result;
+    }
+    vector <byte> encry(vector <byte> x){
+//        for(int i = 0;i<16;i++) cout << char('a'+x[i].to_ulong());
+        // 对一个16byte的x进行加密，返回加密的结果
+        x = AddRoundKey(x,vector <word> (_w.begin(),_w.begin()+4));
+        for(int i = 1;i<10;i++){
+            x = SubBytes(x);
+            x = ShiftRows(x);
+            x = MixColumns(x);
+            AddRoundKey(x,vector <word> (_w.begin()+4*i,_w.begin()+4+4*i))
+        }
+        x = SubBytes(x);
+        x = ShiftRows(x);
+        AddRoundKey(x,vector <word> (_w.begin()+4*i,_w.begin()+4+4*i))
+        return x;
     }
 };
 
@@ -208,5 +232,5 @@ int main(){
     string key = "xuminrui";
     byte shift_byte = 123; //  CBC 模式下的初始向量
     AES a = AES(key,shift_byte);
-
+    a.encryption(message);
 }
