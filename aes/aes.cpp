@@ -31,7 +31,7 @@ byte S_Box[16][16] =
         0x8c,0xa1,0x89,0x0d,0xbf,0xe6,0x42,0x68,0x41,0x99,0x2d,0x0f,0xb0,0x54,0xbb,0x16  /*f*/
 };
 word Rcon[10] = {0x01000000, 0x02000000, 0x04000000, 0x08000000, 0x10000000,
-                 0x20000000, 0x40000000, 0x80000000, 0x1B000000, 0x36000000};
+                 0x20000000, 0x40000000, 0x80000000, 0x1b000000, 0x36000000};
 string byte2string(byte a){
     string re;
     byte a1 = a>>4;
@@ -81,8 +81,8 @@ public:
     }
     word SubWord(word sw){
         word temp;
-        cout << "+"<<endl;
-        cout << hex<<sw.to_ulong()<<endl;
+//        cout << "+"<<endl;
+//        cout << hex<<sw.to_ulong()<<endl;
         for(int i=0; i<32; i+=8)
         {
             int row = sw[i+7]*8 + sw[i+6]*4 + sw[i+5]*2 + sw[i+4];
@@ -91,7 +91,6 @@ public:
             for(int j=0; j<8; ++j)
                 temp[i+j] = val[j];
         }
-        cout << hex<<temp.to_ulong() <<endl;
         return temp;
     }
     void KeyExpansion(string skey)
@@ -110,12 +109,16 @@ public:
         for(i =0;i<4;i++){
             _w[i] = Word(key[4*i], key[4*i+1], key[4*i+2], key[4*i+3]);
         }
-        for(i;i<44;i++){
+        for(i=4;i<44;i++){
             temp = _w[i-1]; // 记录前一个word
             if(i % 4 == 0)
                 _w[i] = _w[i-4] ^ SubWord(RotWord(temp)) ^ Rcon[i/4-1];
             else
                 _w[i] = _w[i-4] ^ temp;
+        }
+        for(int i = 0;i<44;i++){
+            if(i%4 == 0) cout << endl;
+            cout << hex << _w[i].to_ulong();
         }
     }
 
@@ -148,7 +151,6 @@ public:
         for(int i=3; i>0; i--)
             mtx[i+12] = mtx[i+11];
         mtx[12] = temp;
-        cout << endl;
         return mtx;
     }
     byte GFMul(byte a, byte b) {
@@ -208,6 +210,7 @@ public:
             byte tmp = N;
             msg.push_back(N);
         }
+//        for(int i = 0;i<16;i++) msg.push_back(0x00);
         cout << "plain";
         for(int i = 0;i<msg.size();i++){
             cout << byte2string(msg[i]);
@@ -218,8 +221,10 @@ public:
         vector <byte> byte_result;
         for(int i = 0;i<m;i++){
             vector <byte> tmp = encry(vector <byte> (msg.begin()+16*i,msg.begin()+16+16*i));
-            for(int j = 0;j<16;j++){
-                byte_result.push_back(tmp[j]);
+            for(int j = 0;j<4;j++){
+                for(int k = 0;k<4;k++){
+                     byte_result.push_back(tmp[j+k*4]);
+                }
             }
         }
         cout << byte_result.size()<<endl;
@@ -234,32 +239,40 @@ public:
     vector <byte> encry(vector <byte> x){
 //        for(int i = 0;i<16;i++) cout << char('a'+x[i].to_ulong());
         // 对一个16byte的x进行加密，返回加密的结果
+        vector <word> round_key;
+        round_key = vector<word>{_w[0],_w[11],_w[22],_w[33]};
         x = AddRoundKey(x,vector <word> (_w.begin(),_w.begin()+4));
-        cout << "add";
+        cout << "add"<<endl;
         for(int i = 0;i<x.size();i++){
             cout << byte2string(x[i]);
         }
         cout << endl;
         for(int i = 1;i<=10;i++){
             x = SubBytes(x);
-            cout << "sub";
+            cout << "sub"<<endl;
             for(int i = 0;i<x.size();i++){
                 cout << byte2string(x[i]);
             }
             cout << endl;
             x = ShiftRows(x);
-            cout << "shift";
+            cout << "shift"<<endl;
             for(int i = 0;i<x.size();i++){
                 cout << byte2string(x[i]);
             }
             cout << endl;
             if(i!=10) x = MixColumns(x);
-            cout << "mix";
+            cout << "mix"<<endl;
             for(int i = 0;i<x.size();i++){
                 cout << byte2string(x[i]);
             }
             cout << endl;
-            x = AddRoundKey(x,vector <word> (_w.begin()+4*i,_w.begin()+4+4*i));
+            //round_key = vector<word>{_w[i],_w[11+i],_w[22+i],_w[33+i]};
+            x = AddRoundKey(x,vector <word> (_w.begin()+i*4,_w.begin()+4+i*4));
+            cout << "add"<<endl;
+            for(int i = 0;i<x.size();i++){
+                cout << byte2string(x[i]);
+            }
+            cout << endl;
         }
         return x;
     }
@@ -272,5 +285,4 @@ int main(){
     byte shift_byte = 123; //  CBC 模式下的初始向量
     AES a = AES(key,shift_byte);
     a.encryption(message);
-    cout << S_Box[1][0]<<endl;
 }
