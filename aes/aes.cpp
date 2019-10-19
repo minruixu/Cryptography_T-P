@@ -220,6 +220,12 @@ public:
         int m = msg.size()/16;
         vector <byte> byte_result;
         for(int i = 0;i<m;i++){
+            vector <byte> pt_msg(16);
+            for(int j = 0;j<4;j++){
+                for(int k = 0;k<4;k++){
+                    pt_msg.push_back(msg[i*16 + k*4 + j]);
+                }
+            }
             vector <byte> tmp = encry(vector <byte> (msg.begin()+16*i,msg.begin()+16+16*i));
             for(int j = 0;j<4;j++){
                 for(int k = 0;k<4;k++){
