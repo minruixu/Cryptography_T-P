@@ -48,10 +48,10 @@ class AES{
 private:
     string _key;
     vector <word> _w;
-    byte _shift;
+    string _shift;
     byte IV;
 public:
-    AES(string key,byte shift){
+    AES(string key,string shift){
         _key = key;
         _shift = shift;
         _w.resize(44);
@@ -196,7 +196,7 @@ public:
         return mtx;
     }
 
-    string encryption(string message){
+    string encryptionECB(string message){
         //128位 每次加密16个字符
         string result;
         int N = (16-message.length()%16)%16;
@@ -211,23 +211,28 @@ public:
             msg.push_back(N);
         }
 //        for(int i = 0;i<16;i++) msg.push_back(0x00);
-        cout << "plain";
-        for(int i = 0;i<msg.size();i++){
-            cout << byte2string(msg[i]);
-        }
-        cout << endl;
+//        cout << "plain";
+//        for(int i = 0;i<msg.size();i++){
+//            cout << byte2string(msg[i]);
+//        }
+//        cout << endl;
         // 对msg进行加密
         int m = msg.size()/16;
         vector <byte> byte_result;
         for(int i = 0;i<m;i++){
-            vector <byte> tmp = encry(vector <byte> (msg.begin()+16*i,msg.begin()+16+16*i));
+            vector <byte> pat_msg;
+            for(int j = 0;j<4;j++){
+                for(int k = 0;k<4;k++){
+                    pat_msg.push_back(msg[i*16+j+k*4]);
+                }
+            }
+            vector <byte> tmp = encrypt(pat_msg);
             for(int j = 0;j<4;j++){
                 for(int k = 0;k<4;k++){
                      byte_result.push_back(tmp[j+k*4]);
                 }
             }
         }
-        cout << byte_result.size()<<endl;
         cout << "encipher:";
         for(int i = 0;i<byte_result.size();i++){
             cout << byte2string(byte_result[i]);
@@ -236,53 +241,102 @@ public:
         //将用byte表示的密文转化为十六进制和字符串。
         return result;
     }
-    vector <byte> encry(vector <byte> x){
+    string encryptionCBC(string message, string shift){
+        //128位 每次加密16个字符
+        string result;
+        int N = (16-message.length()%16)%16;
+        vector <byte> msg;
+        // 将string 的msg转变为a的
+        for(int i = 0;i<message.length();i++){
+            byte tmp = message[i];
+            msg.push_back(tmp);
+        }
+        for(int i = 0;i<N;i++){
+            byte tmp = N;
+            msg.push_back(N);
+        }
+        // 创建shift
+        vector <byte> shift_byte(16);
+        for(int i = 0;i<16;i++){
+            if(i<shift.length()){
+                shift_byte[i] = shift[i];
+            }
+            else shift_byte[i] = 0x00;
+        }
+        // 对msg进行加密
+        int m = msg.size()/16;
+        vector <byte> byte_result;
+        for(int i = 0;i<m;i++){
+            vector <byte> pat_msg;
+            for(int j = 0;j<4;j++){
+                for(int k = 0;k<4;k++){
+                    pat_msg.push_back(msg[i*16+j+k*4]^shift_byte[j+k*4]);
+                }
+            }
+            // 与shift_bytee 异或
+            vector <byte> tmp = encrypt(pat_msg);
+            for(int j = 0;j<4;j++){
+                for(int k = 0;k<4;k++){
+                    byte_result.push_back(tmp[j+k*4]);
+                    shift_byte[j*4+k] = tmp[j+k*4];
+                }
+            }
+        }
+        cout << "encipher:";
+        for(int i = 0;i<byte_result.size();i++){
+            cout << byte2string(byte_result[i]);
+        }
+        cout << endl;
+        //将用byte表示的密文转化为十六进制和字符串。
+        return result;
+    }
+    vector <byte> encrypt(vector <byte> x){
 //        for(int i = 0;i<16;i++) cout << char('a'+x[i].to_ulong());
         // 对一个16byte的x进行加密，返回加密的结果
         vector <word> round_key;
         round_key = vector<word>{_w[0],_w[11],_w[22],_w[33]};
         x = AddRoundKey(x,vector <word> (_w.begin(),_w.begin()+4));
-        cout << "add"<<endl;
-        for(int i = 0;i<x.size();i++){
-            cout << byte2string(x[i]);
-        }
-        cout << endl;
+//        cout << "add"<<endl;
+//        for(int i = 0;i<x.size();i++){
+//            cout << byte2string(x[i]);
+//        }
+//        cout << endl;
         for(int i = 1;i<=10;i++){
             x = SubBytes(x);
-            cout << "sub"<<endl;
-            for(int i = 0;i<x.size();i++){
-                cout << byte2string(x[i]);
-            }
-            cout << endl;
+//            cout << "sub"<<endl;
+//            for(int i = 0;i<x.size();i++){
+//                cout << byte2string(x[i]);
+//            }
+//            cout << endl;
             x = ShiftRows(x);
-            cout << "shift"<<endl;
-            for(int i = 0;i<x.size();i++){
-                cout << byte2string(x[i]);
-            }
-            cout << endl;
+//            cout << "shift"<<endl;
+//            for(int i = 0;i<x.size();i++){
+//                cout << byte2string(x[i]);
+//            }
+//            cout << endl;
             if(i!=10) x = MixColumns(x);
-            cout << "mix"<<endl;
-            for(int i = 0;i<x.size();i++){
-                cout << byte2string(x[i]);
-            }
-            cout << endl;
+//            cout << "mix"<<endl;
+//            for(int i = 0;i<x.size();i++){
+//                cout << byte2string(x[i]);
+//            }
+//            cout << endl;
             //round_key = vector<word>{_w[i],_w[11+i],_w[22+i],_w[33+i]};
             x = AddRoundKey(x,vector <word> (_w.begin()+i*4,_w.begin()+4+i*4));
-            cout << "add"<<endl;
-            for(int i = 0;i<x.size();i++){
-                cout << byte2string(x[i]);
-            }
-            cout << endl;
+//            cout << "add"<<endl;
+//            for(int i = 0;i<x.size();i++){
+//                cout << byte2string(x[i]);
+//            }
+//            cout << endl;
         }
         return x;
     }
 };
 
 int main(){
-//    string message = "ilearnedhowtocalculatetheamountofpaperneededforaroomwheniwasatschoolyoumultiplythesquarefootageofthewallsbythecubiccontentsofthefloorandceilingcombinedanddoubleityouthenallowhalfthetotalforopeningssuchaswindowsanddoorsthenyouallowtheotherhalfformatchingthepatternthenyoudoublethewholethingagaintogiveamarginoferrorandthenyouorderthepaper";
-    string message = "b";
-    string key = "aaaaaaaaaaaaaaaa";
-    byte shift_byte = 123; //  CBC 模式下的初始向量
+    string message = "ilearnedhowtocalculatetheamountofpaperneededforaroomwheniwasatschoolyoumultiplythesquarefootageofthewallsbythecubiccontentsofthefloorandceilingcombinedanddoubleityouthenallowhalfthetotalforopeningssuchaswindowsanddoorsthenyouallowtheotherhalfformatchingthepatternthenyoudoublethewholethingagaintogiveamarginoferrorandthenyouorderthepaper";
+//    string message = "a";
+    string key = "xuminrui";
+    string shift_byte = "123"; //  CBC 模式下的初始向量
     AES a = AES(key,shift_byte);
-    a.encryption(message);
+    a.encryptionCBC(message,shift_byte);
 }
