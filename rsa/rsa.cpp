@@ -171,6 +171,15 @@ Wint pow(Wint n,Wint k){
     if(k.front()%2) return n*pow(n,k-1);
     return pow(pow(n,k/2),2);
 }
+Wint pow_n(Wint n,Wint k,Wint _n){
+    cout << k << endl;
+    if(k.empty())return 1;
+    if(k==Wint("2")) return (n*n)%_n;
+//    cout << "m" <<endl;
+    if(k[0]%2) return (n*pow_n(n,k-1,_n)%_n)%_n;
+//    cout << "m" <<endl;
+    return (pow_n(pow_n(n,k/2,_n)%_n,2,_n))%_n;
+}
 Wint Wint_inverse(Wint a,Wint m){
     Wint u1 = Wint(1); Wint u2 = Wint(0); Wint u3 = a;
     Wint v1 = Wint(0); Wint v2 = Wint(1); Wint v3 = m;
@@ -311,11 +320,11 @@ public:
         _phin = (_p - Wint(1)) * (_q - Wint(1));
         _prikey = Wint(prikey);
         _pubkey = Wint_inverse(_prikey,_phin);
-        cout << _phin <<endl;
+//        cout << _phin <<endl;
 //        _pubkey = Wint_inverse(Wint(28),Wint(75));
-        cout << _prikey <<endl;
-        cout << "___________"<<endl;
-        cout << _pubkey << endl;
+//        cout << _prikey <<endl;
+//        cout << "___________"<<endl;
+//        cout << _pubkey << endl;
     }
     pmsg hash(pmsg input){
         pmsg output;
@@ -375,11 +384,13 @@ public:
         vector <Wint> pow2;
         pow2.push_back(Wint(1));
         for(int i = 1;i<2048;i++) pow2.push_back(pow2[i-1]*Wint(2));
-        Wint plain;
+        Wint plain = Wint(0);
         for(int i = 0;i<2048;i++){
-            if(encode_plain[i] == 1) plain = plain + pow2[i];
+            if(encode_plain[i]) plain = plain + pow2[i];
         }
-        Wint cipher = pow(plain,_pubkey);
+        cout << "-"<<endl;
+        Wint cipher = pow_n(plain,_pubkey,_n);
+        cout << "-"<<endl;
         return Wint2msg(cipher);
     }
     // RSA 私钥解密
@@ -390,17 +401,31 @@ public:
         for(int i = 1;i<2048;i++) pow2.push_back(pow2[i-1]*Wint(2));
         Wint cipher;
         for(int i = 0;i<2048;i++){
-            if(encode_plain[i] == 1) cipher = cipher + pow2[i];
+            if(encode_cipher[i]) cipher = cipher + pow2[i];
         }
-        Wint plain = pow(cipher,_pubkey);
+        Wint plain = pow_n(cipher,_prikey,_n);
         return Wint2msg(plain);
     }
     // 在RSA中实现的大整数运算：pow(multiply,mod),inverse
+    string test(string input){
+        msg inter;
+        inter = encodeOAEP(input);
+        cout << "+"<<endl;
+        inter = RSAencode(inter);
+        cout << "+"<<endl;
+        inter = RSAdecode(inter);
+        cout << "+"<<endl;
+        string output = decodeOAEP(inter);
+        cout << "+"<<endl;
+        return output;
+    }
 };
 int main(){
     // 1024bit的p和q
     string p = "74829638746533240988779487685519857207853614853369269125737224926836190844584386477252351678694220847326413610447912126732461551667746605631104998257474529620520790296706975377558703885069067389851079532628142311782993846028093717798601985881211947182951877707743021688050533047297428267547207193214872407179";
     string q = "107296245469105708553885694146097228957924134383498411644481264273897635331338716573880625961872125593436197056329996041839918538287799741950000667523364412951312104942279975769261920125078391971701830788146273511314474716785909534480336382568039624262497906015374016000442339021334156275769032915698038588739";
     string prikey = "17340031";
-    RSA rse = RSA(p,q,prikey);
+    RSA rsa = RSA(p,q,prikey);
+    string te = "Sun Yat-sen University";
+    cout << rsa.test(te) << endl;
 }
