@@ -30,6 +30,7 @@ using namespace std;
 
 typedef bitset<8> byte;
 typedef bitset<32> word;
+typedef bitset<160> hash_result;
 typedef bitset<1024> pmsg;
 typedef bitset<2048> msg;
 
@@ -126,6 +127,7 @@ Wint operator+(Wint a,Wint b){
 }
 Wint operator*(Wint a,Wint b){
     Wint n(0);
+    if(a==Wint(0) || b ==Wint(0)) return Wint(0);
     n.assign(a.size()+b.size()-1,0);
     for(int i=0; i!=a.size(); ++i)
         for(int j=0; j!=b.size(); ++j)
@@ -168,6 +170,29 @@ Wint pow(Wint n,Wint k){
     if(k==Wint("2")) return n*n;
     if(k.front()%2) return n*pow(n,k-1);
     return pow(pow(n,k/2),2);
+}
+Wint Wint_inverse(Wint a,Wint m){
+    Wint u1 = Wint(1); Wint u2 = Wint(0); Wint u3 = a;
+    Wint v1 = Wint(0); Wint v2 = Wint(1); Wint v3 = m;
+    while(v3 != Wint(0)){
+        Wint q = u3 / v3;
+        Wint t1 = u1;
+        Wint t2 = u2;
+        Wint t3 = u3;
+        u1 = v1;
+        u2 = v2;
+        u3 = v3;
+        v1 = q*v1;
+        v1 = (m + t1%m-v1%m)%m;
+        v2 = q*v2;
+        v2 = (m + t2%m-v2%m)%m;
+        v3 = q*v3;
+        v3 = (m + t3%m-v3%m)%m;
+//        cout << v3 << endl;
+//        cout << u3 << endl;
+//        cout << u1<<"+"<<endl;
+    }
+    return u1 % m;
 }
 msg Wint2msg(Wint w){
     msg result;
@@ -217,7 +242,7 @@ public:
         unsigned int t = a.to_ulong() + b.to_ulong();
         return t;
     }
-    vector <word> hash(string msgb){
+    string hash(string msgb){
         unsigned int l = msgb.length();
         //将msgb补充为512分组
         int d = (447 - l) % 512;
@@ -268,55 +293,114 @@ public:
             h3 = add(h3,D);
             h4 = add(h4,E);
         }
-//        cout << word2string(h0)<<endl;
-        return vector <word> ({h0,h1,h2,h3,h4});
+        return h0.to_string()+h1.to_string()+h2.to_string()+h3.to_string()+h4.to_string();
     }
 };
 class RSA{
 private:
-    msg _p,_q;
-    msg _n,_phin;
-    msg _priket,_pubkey;
+    Wint _p,_q;
+    Wint _n,_phin;
+    Wint _prikey,_pubkey;
     // a 和 b 可以表示为大整数形式
 public:
     RSA(string p,string q,string prikey){
         // 将p ， q 和 prikey 的字符串 转为 bitset
-        _p = Wint2msg(Wint(p));
-        _q = Wint2msg(Wint(p));
-        _prikey = Wint2msg(Wint(prikey));
+        _p = Wint(p);
+        _q = Wint(q);
+        _n = _q * _p;
+        _phin = (_p - Wint(1)) * (_q - Wint(1));
+        _prikey = Wint(prikey);
+        _pubkey = Wint_inverse(_prikey,_phin);
+        cout << _phin <<endl;
+//        _pubkey = Wint_inverse(Wint(28),Wint(75));
+        cout << _prikey <<endl;
+        cout << "___________"<<endl;
+        cout << _pubkey << endl;
     }
-    // 对一个明文进行进行OAEP
-    msg hash(msg input){
-        msg output;
+    pmsg hash(pmsg input){
+        pmsg output;
         SHA1 sha1 = SHA1();
-        vector <word> re = sha1.hash(input.to_string());
-        for(int i = 0;i<6;i++){
-            cout << re[i].to_string();
+        string round = sha1.hash(input.to_string());
+        for(int j = 0;j<160;j++) output[j] = round[j] - '0';
+        for(int i = 1;i<6;i++){
+            round = sha1.hash(round);
+            for(int j = 0;j<160;j++) output[j + i*160] = round[j] - '0';
         }
-        cout << endl;
         return output;
     }
-//    msg encodeOAEP(string str){
-//
-//    }
-//    // 对密文进行OAEP
-//    string decodeOAEP(msg decode){
-//
-//    }
-//    // RSA 公钥加密
-//    msg RSAencode(msg){
-//
-//    }
-//    // RSA 私钥解密
-//    msg RSAdecode(){
-//
-//    }
+    pmsg random(){
+        //生成一个随机的r
+        pmsg result;
+        for(int i = 0;i<1024;i++) result[i] = rand()%2;
+        return result;
+    }
+    // 对一个明文进行进行OAEP
+    msg encodeOAEP(string plaintext){
+        // 首先读入plaintext
+        pmsg M;
+        for(int i = 0;i<plaintext.size();i++){
+            byte temp = plaintext[i];
+            for(int j = 0;j<8;j++) M[i*8 + j] = temp[i];
+        }
+        pmsg r = random();
+        pmsg P1 = M ^ hash(r); // M就完成运算了
+        pmsg P2 = hash(P1) ^ r;
+        msg result;
+        for(int i = 0;i<1024;i++) result[i] = P2[i];
+        for(int i = 0;i<1024;i++) result[i+1024] = P1[i];
+        return result;
+    }
+    // 对密文进行OAEP
+    string decodeOAEP(msg ciphertext){
+        pmsg P1,P2;
+        for(int i = 0;i<1024;i++) P1[i] = ciphertext[i+1024];
+        for(int i = 0;i<1024;i++) P2[i] = ciphertext[i];
+        pmsg r = hash(P1) ^ P2;
+        pmsg M = hash(r) ^ P1;
+        string result;
+        for(int i = 0;i<128;i++){
+            byte tmp;
+            for(int j = 0;i<8;j++){
+                tmp[j] = M[j + i*8];
+            }
+            int c = tmp.to_ulong();
+            if(c == 0) break;
+            result = char(c) + result;
+        }
+        return result;
+    }
+//     RSA 公钥加密
+    msg RSAencode(msg encode_plain){
+        // 输入2048bit的msg，进行次方运算
+        vector <Wint> pow2;
+        pow2.push_back(Wint(1));
+        for(int i = 1;i<2048;i++) pow2.push_back(pow2[i-1]*Wint(2));
+        Wint plain;
+        for(int i = 0;i<2048;i++){
+            if(encode_plain[i] == 1) plain = plain + pow2[i];
+        }
+        Wint cipher = pow(plain,_pubkey);
+        return Wint2msg(cipher);
+    }
+    // RSA 私钥解密
+    msg RSAdecode(msg encode_cipher){
+        // 输入2048比特的msg，进行次方运算，进行解密
+        vector <Wint> pow2;
+        pow2.push_back(Wint(1));
+        for(int i = 1;i<2048;i++) pow2.push_back(pow2[i-1]*Wint(2));
+        Wint cipher;
+        for(int i = 0;i<2048;i++){
+            if(encode_plain[i] == 1) cipher = cipher + pow2[i];
+        }
+        Wint plain = pow(cipher,_pubkey);
+        return Wint2msg(plain);
+    }
     // 在RSA中实现的大整数运算：pow(multiply,mod),inverse
 };
 int main(){
     // 1024bit的p和q
     string p = "74829638746533240988779487685519857207853614853369269125737224926836190844584386477252351678694220847326413610447912126732461551667746605631104998257474529620520790296706975377558703885069067389851079532628142311782993846028093717798601985881211947182951877707743021688050533047297428267547207193214872407179";
-    string q = "74829638746533240988779487685519857207853614853369269125737224926836190844584386477252351678694220847326413610447912126732461551667746605631104998257474529620520790296706975377558703885069067389851079532628142311782993846028093717798601985881211947182951877707743021688050533047297428267547207193214872407179";
-    Wint wq = Wint(q);
-    Wint2msg(wq);
+    string q = "107296245469105708553885694146097228957924134383498411644481264273897635331338716573880625961872125593436197056329996041839918538287799741950000667523364412951312104942279975769261920125078391971701830788146273511314474716785909534480336382568039624262497906015374016000442339021334156275769032915698038588739";
+    string prikey = "17340031";
+    RSA rse = RSA(p,q,prikey);
 }
