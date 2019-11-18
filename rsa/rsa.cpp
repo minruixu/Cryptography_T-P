@@ -199,48 +199,31 @@ Wint pow(Wint n,Wint k){
     if(k.front()%2) return n*pow(n,k-1);
     return pow(pow(n,k/2),2);
 }
-msg add(msg a, msg b){
-    msg result;
-    for(int i = 0;i<2048;i++){
-        int f = 0;
-        f = result[i] + a[i] + b[i];
-        if(f == 1) result[i] = 1;
-        else if(f == 2){
-            result[i] = 0;
-            if(i <2047) result[i+1] = 1;
-        }
-        else if(f == 3){
-            result[i] = 1;
-            if(i <2047) result[i+1] = 1;
-        }
-    }
-    return result;
-}
 msg multiply(msg a, msg b){
     // 计算 a * b
+    vector <int> raw(2048,0);
     msg result;
     for(int i = 0;i<2048;i++){
         if(a[i]){
             msg c = b << i;
-            result = add(result,c);
+            raw[i] += b[i];
         }
+    }
+    for(int i = 0;i<2047;i++){
+        if(raw[i]%2) result[i]=1;
+        raw[i+1] += raw[i]/2;
     }
     return result;
 }
-bool check(msg c){
-    for(int i = 0;i<2048;i++) if(c[i]) return true;
-    return false;
-}
-Wint pow_n(Wint n,Wint k){
-    msg mn = Wint2msg(n);
-    msg mk = Wint2msg(k);
-    msg mr = 0x01;
-    while(check(mk)){
-        if(mk[0]) mr = multiply(mr,mn);
-        mn = multiply(mn,mn);
-        mk = mk >> 1;
-    }
-    return msg2Wint(mr);
+msg pow_n(msg n,msg k){
+//    cout << k <<endl;
+    msg t1 = 0x00;
+    msg t2 = 0x00;
+    t2[1] = 1;
+    if(k==t1) return 1; // 如果k是0的话，返回1
+    if(k==t2) return multiply(n,n);
+    if(k[0]) return multiply(n,pow_n(n,(k>>1)<<1));
+    return pow_n(pow_n(n,k>>1),0x02);
 }
 Wint Wint_inverse(Wint a,Wint m){
     Wint u1 = Wint(1); Wint u2 = Wint(0); Wint u3 = a;
@@ -393,9 +376,11 @@ public:
         pmsg M;
         for(int i = 0;i<plaintext.size();i++){
             byte temp = plaintext[i];
-            for(int j = 0;j<8;j++) M[i*8 + j] = temp[i];
+            for(int j = 0;j<8;j++) M[i*8 + j] = temp[j];
         }
+        cout << "encode(M):"<<M<<endl;
         pmsg r = random();
+        cout << "encode(r):"<<r <<endl;
         pmsg P1 = M ^ hash(r); // M就完成运算了
         pmsg P2 = hash(P1) ^ r;
         msg result;
@@ -409,7 +394,9 @@ public:
         for(int i = 0;i<1024;i++) P1[i] = ciphertext[i+1024];
         for(int i = 0;i<1024;i++) P2[i] = ciphertext[i];
         pmsg r = hash(P1) ^ P2;
+        cout << "decode(r): "<<r << endl;
         pmsg M = hash(r) ^ P1;
+        cout << "decode(M):" << M <<endl;
         string result;
         for(int i = 0;i<128;i++){
             byte tmp;
@@ -417,25 +404,23 @@ public:
                 tmp[j] = M[j + i*8];
             }
             int c = tmp.to_ulong();
-            cout << c << endl;
+//            cout << c << endl;
             if(c == 0) continue;
-            result = char(c) + result;
+            result = result + char(c);
         }
         return result;
     }
 //     RSA 公钥加密
     msg RSAencode(msg encode_plain){
         // 输入2048bit的msg，进行次方运算
-        Wint plain = msg2Wint(encode_plain);
-        Wint cipher = pow_n(plain,_pubkey);
-        return Wint2msg(cipher);
+        msg cipher = pow_n(encode_plain,Wint2msg(_pubkey));
+        return cipher;
     }
     // RSA 私钥解密
     msg RSAdecode(msg encode_cipher){
         // 输入2048比特的msg，进行次方运算，进行解密
-        Wint cipher = msg2Wint(encode_cipher);
-        Wint plain = pow_n(cipher,_prikey);
-        return Wint2msg(plain);
+        msg plain = pow_n(encode_cipher,Wint2msg(_prikey));
+        return plain;
     }
     // 在RSA中实现的大整数运算：pow(multiply,mod),inverse
     string test(string input){
