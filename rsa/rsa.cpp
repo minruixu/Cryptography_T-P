@@ -165,20 +165,82 @@ Wint operator/(Wint a,Wint b){
 Wint operator/=(Wint a,Wint b){
     return a/b;
 }
+msg Wint2msg(Wint w){
+    msg result;
+    Wint num = Wint("2");
+    Wint num2047 = Wint("2047");
+    vector <Wint> pow2;
+    pow2.push_back(Wint(1));
+    for(int i = 1;i<2048;i++){
+        pow2.push_back(pow2[i-1]*2);
+    }
+    for(int i = 2047;i>=0;i--){
+        if(w >= pow2[i]){
+            result[i] = 1;
+            w = w - pow2[i];
+        }
+    }
+//    cout << result.to_string() << endl;
+    return result;
+}
+Wint msg2Wint(msg m){
+    Wint re = Wint(0);
+    vector <Wint> pow2;
+    pow2.push_back(Wint(1));
+    for(int i = 1;i<2048;i++) pow2.push_back(pow2[i-1]*Wint(2));
+    for(int i = 0;i<2048;i++){
+        if(m[i]) re = re + pow2[i];
+    }
+    return re;
+}
 Wint pow(Wint n,Wint k){
     if(k.empty())return 1;
     if(k==Wint("2")) return n*n;
     if(k.front()%2) return n*pow(n,k-1);
     return pow(pow(n,k/2),2);
 }
-Wint pow_n(Wint n,Wint k,Wint _n){
-    cout << k << endl;
-    if(k.empty())return 1;
-    if(k==Wint("2")) return (n*n)%_n;
-//    cout << "m" <<endl;
-    if(k[0]%2) return (n*pow_n(n,k-1,_n)%_n)%_n;
-//    cout << "m" <<endl;
-    return (pow_n(pow_n(n,k/2,_n)%_n,2,_n))%_n;
+msg add(msg a, msg b){
+    msg result;
+    for(int i = 0;i<2048;i++){
+        int f = 0;
+        f = result[i] + a[i] + b[i];
+        if(f == 1) result[i] = 1;
+        else if(f == 2){
+            result[i] = 0;
+            if(i <2047) result[i+1] = 1;
+        }
+        else if(f == 3){
+            result[i] = 1;
+            if(i <2047) result[i+1] = 1;
+        }
+    }
+    return result;
+}
+msg multiply(msg a, msg b){
+    // 计算 a * b
+    msg result;
+    for(int i = 0;i<2048;i++){
+        if(a[i]){
+            msg c = b << i;
+            result = add(result,c);
+        }
+    }
+    return result;
+}
+bool check(msg c){
+    for(int i = 0;i<2048;i++) if(c[i]) return true;
+    return false;
+}
+Wint pow_n(Wint n,Wint k){
+    msg mn = Wint2msg(n);
+    msg mk = Wint2msg(k);
+    msg mr = 0x01;
+    while(check(mk)){
+        if(mk[0]) mr = multiply(mr,mn);
+        mn = multiply(mn,mn);
+        mk = mk >> 1;
+    }
+    return msg2Wint(mr);
 }
 Wint Wint_inverse(Wint a,Wint m){
     Wint u1 = Wint(1); Wint u2 = Wint(0); Wint u3 = a;
@@ -202,24 +264,6 @@ Wint Wint_inverse(Wint a,Wint m){
 //        cout << u1<<"+"<<endl;
     }
     return u1 % m;
-}
-msg Wint2msg(Wint w){
-    msg result;
-    Wint num = Wint("2");
-    Wint num2047 = Wint("2047");
-    vector <Wint> pow2;
-    pow2.push_back(Wint(1));
-    for(int i = 1;i<2048;i++){
-        pow2.push_back(pow2[i-1]*2);
-    }
-    for(int i = 2047;i>=0;i--){
-        if(w >= pow2[i]){
-            result[i] = 1;
-            w = w - pow2[i];
-        }
-    }
-    cout << result.to_string() << endl;
-    return result;
 }
 class SHA1{
 private:
@@ -369,11 +413,12 @@ public:
         string result;
         for(int i = 0;i<128;i++){
             byte tmp;
-            for(int j = 0;i<8;j++){
+            for(int j = 0;j<8;j++){
                 tmp[j] = M[j + i*8];
             }
             int c = tmp.to_ulong();
-            if(c == 0) break;
+            cout << c << endl;
+            if(c == 0) continue;
             result = char(c) + result;
         }
         return result;
@@ -381,29 +426,15 @@ public:
 //     RSA 公钥加密
     msg RSAencode(msg encode_plain){
         // 输入2048bit的msg，进行次方运算
-        vector <Wint> pow2;
-        pow2.push_back(Wint(1));
-        for(int i = 1;i<2048;i++) pow2.push_back(pow2[i-1]*Wint(2));
-        Wint plain = Wint(0);
-        for(int i = 0;i<2048;i++){
-            if(encode_plain[i]) plain = plain + pow2[i];
-        }
-        cout << "-"<<endl;
-        Wint cipher = pow_n(plain,_pubkey,_n);
-        cout << "-"<<endl;
+        Wint plain = msg2Wint(encode_plain);
+        Wint cipher = pow_n(plain,_pubkey);
         return Wint2msg(cipher);
     }
     // RSA 私钥解密
     msg RSAdecode(msg encode_cipher){
         // 输入2048比特的msg，进行次方运算，进行解密
-        vector <Wint> pow2;
-        pow2.push_back(Wint(1));
-        for(int i = 1;i<2048;i++) pow2.push_back(pow2[i-1]*Wint(2));
-        Wint cipher;
-        for(int i = 0;i<2048;i++){
-            if(encode_cipher[i]) cipher = cipher + pow2[i];
-        }
-        Wint plain = pow_n(cipher,_prikey,_n);
+        Wint cipher = msg2Wint(encode_cipher);
+        Wint plain = pow_n(cipher,_prikey);
         return Wint2msg(plain);
     }
     // 在RSA中实现的大整数运算：pow(multiply,mod),inverse
@@ -428,4 +459,6 @@ int main(){
     RSA rsa = RSA(p,q,prikey);
     string te = "Sun Yat-sen University";
     cout << rsa.test(te) << endl;
+//    cout << RSA.multiply().to_ulong()<<endl;
+//    cout << multiply(0x09,0x09).to_ulong()<<endl;
 }
