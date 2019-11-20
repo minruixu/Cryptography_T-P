@@ -46,8 +46,8 @@ class RSA:
     def ra(self):
         # 生成一个1024bit的随机数
         re = bytearray(128)
-        for i in range(128):
-            re[i] ^= random.randint(0,255)
+        for i in range(64):
+            re[127-i] ^= random.randint(0,255)
         return re
     def encodeOAEP(self,plaintext):
         # 输入明文的字符串，返回密文的比特串
@@ -107,23 +107,24 @@ class RSA:
             if m&1:
                 re = (re * a) % self.n
             a = (a * a) % self.n
-            m = m //2
-        return re % self.n
+            m >>= 1
+        return re
     def RSAencode(self,encode_plain):
         # 输入的是一个256位的bytearray
+        # 将输入的bytearray转化为二进制字符串
         binary_str = ""
         for i in range(256):
             binary_str = binary_str + self.i2b(encode_plain[i])
         print("binary(encode)",binary_str)
-        p = 1
+        p = 0
         num = 1
         for i in range(2048):
             if binary_str[2047-i] == "1":
                 p += num
             num *= 2
         # 公钥加密,返回一个数
-        print("num:",num)
-        encode = self.quick_pow(num,self.pubkey)
+        print("p:",p%self.n)
+        encode = self.quick_pow(p,self.pubkey)
         print("encode:",encode)
         return encode
     def RSAdecode(self,encode_cipher):
@@ -149,10 +150,12 @@ class RSA:
         plain_byte = bytearray(256)
         for i in range(256):
             k = 0
+            tb = plain_bin[i * 8:(i + 1) * 8]
             for j in range(8):
-                if plain_bin[i*8 + 7 - j] == "1":
-                    k += arr[j]
+                if tb[7-j] == "1":
+                    k += 2**j
             plain_byte[i] = k
+        print("plain_byte:",plain_byte[-1])
         return plain_byte
 
 if __name__ == '__main__':
@@ -166,12 +169,14 @@ if __name__ == '__main__':
     plain = "Sun Yat-sen University"
     r = RSA(p,q,prikey)
     test = r.encodeOAEP(plain)
+    print("OAEP(encode):",test)
     en = r.RSAencode(test)
     de = r.RSAdecode(en)
     final = r.decodeOAEP(de)
     print(final)
     print("test power")
-    tt = 66666666
+    tt = 32317006071311007300714876688669951960444102669715484032130345427524655138867890893197201411522913463688717960921898019494119559150490921095088152386448283120630877367300996091750197750389652106796057638384067568276792218642619756161838094338476170470581645852036305042887575891541065808607552399123930385521914333389668342420684974786564569494856176035326322058077805659331026192708460314150258592864177116725943603718461857357598351152301645904403697613233287231227125684710820209725157101726931323469678542580656697935045997268352998638215525166389437335543602135433229604645318478604952148193555853611059596230656
+    print(tt)
     ttt = r.quick_pow(tt,r.pubkey)
     print(ttt)
     print(r.quick_pow(ttt,r.prikey))
