@@ -22,6 +22,8 @@ class DLP:
 
     def inverse(self,a,m):
         # 扩展欧几里得算法求逆
+        while math.gcd(a,m) != 1:
+            a,m = a/math.gcd(a,m),m/math.gcd(a,m)
         u1,u2,u3 = 1,0,a
         v1,v2,v3 = 0,1,m
         while v3!=0:
@@ -65,9 +67,12 @@ class DLP:
         d = math.gcd((bt-b),ra)
         solution = (a-at)*self.inverse(bt-b,ra//2)%ra
         # 对解进行验证
-        print("solution:",solution)
         print("We get:",d,"solution(s).")
-        print(((a - at)*self.inverse(r,ra//2) % ra)*(bt-b)%ra,'==',(a-at))
+        for i in range(d):
+            solution = (ra + solution + i * ra//d)%ra
+            if self.quick_pow(alpha,solution)==beta:
+                print(((a - at)*self.inverse(r,ra//2) % ra)*(bt-b)%ra,'==',(ra + a-at)%ra)
+                return solution
         return (a - at)*self.inverse(r,ra//2) % ra
 
     def pohlig_hellman(self):
